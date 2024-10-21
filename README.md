@@ -13,6 +13,11 @@ Fine-tune Cog family of video models for custom video generation under 24GB of G
 ## Quickstart
 
 Clone the repository and make sure the requirements are installed: `pip install -r requirements.txt` and install diffusers from source by `pip install git+https://github.com/huggingface/diffusers`.
+```bash
+pip install -r requirements.txt
+pip install huggingface_hub accelerate
+pip install git+https://github.com/huggingface/diffusers
+```
 
 Then download a dataset:
 
