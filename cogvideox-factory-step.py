@@ -15,6 +15,12 @@ huggingface-cli download \
 
 https://huggingface.co/THUDM/CogVideoX-5b-I2V
 
+https://github.com/a-r-r-o-w/cogvideox-factory/issues/25
+https://github.com/svjack/cogvideox-factory/blob/main/assets/dataset.md
+https://github.com/svjack/cogvideox-factory/blob/main/prepare_dataset.sh
+
+and should edit acc cfgs
+
 #### 2B
 bash ./train_text_to_video_lora.sh
 
