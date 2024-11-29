@@ -10,6 +10,63 @@ Fine-tune Cog family of video models for custom video generation under 24GB of G
 </tr>
 </table>
 
+## Mochi-1 Step
+- installtion
+```bash
+sudo apt-get update && sudo apt-get install git-lfs ffmpeg cbm
+git clone https://github.com/a-r-r-o-w/cogvideox-factory
+cd cogvideox-factory
+pip install -r requirements.txt
+cd training/mochi-1
+pip install -r requirements.txt
+pip install Pillow==9.5.0
+pip install git+https://github.com/huggingface/diffusers.git
+huggingface-cli download \
+  --repo-type dataset sayakpaul/video-dataset-disney-organized \
+  --local-dir video-dataset-disney-organized
+bash prepare_dataset.sh
+```
+- train.sh
+```bash
+bash train.sh
+```
+
+```bash
+#!/bin/bash
+export NCCL_P2P_DISABLE=1
+export TORCH_NCCL_ENABLE_MONITORING=0
+
+GPU_IDS="0"
+
+DATA_ROOT="videos_prepared"
+MODEL="genmo/mochi-1-preview"
+OUTPUT_PATH="mochi-lora"
+
+cmd="CUDA_VISIBLE_DEVICES=$GPU_IDS python text_to_video_lora.py \
+  --pretrained_model_name_or_path $MODEL \
+  --cast_dit \
+  --data_root $DATA_ROOT \
+  --seed 42 \
+  --output_dir $OUTPUT_PATH \
+  --train_batch_size 1 \
+  --dataloader_num_workers 4 \
+  --pin_memory \
+  --caption_dropout 0.1 \
+  --max_train_steps 2000 \
+  --gradient_checkpointing \
+  --enable_slicing \
+  --enable_tiling \
+  --enable_model_cpu_offload \
+  --optimizer adamw \
+  --allow_tf32 \
+  --report_to None"
+
+echo "Running command: $cmd"
+eval $cmd
+echo -ne "-------------------- Finished executing script --------------------\n\n"
+
+```
+
 ## Quickstart
 
 Clone the repository and make sure the requirements are installed: `pip install -r requirements.txt` and install diffusers from source by `pip install git+https://github.com/huggingface/diffusers`.
