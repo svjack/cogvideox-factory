@@ -67,6 +67,45 @@ echo -ne "-------------------- Finished executing script --------------------\n\
 
 ```
 
+## Tuned inference 
+```python
+from diffusers import MochiPipeline
+from diffusers.utils import export_to_video
+import torch
+
+pipe = MochiPipeline.from_pretrained("genmo/mochi-1-preview", torch_dtype = torch.float16)
+pipe.load_lora_weights("svjack/mochi_mickey_mice_early_lora")
+pipe.enable_model_cpu_offload()
+pipe.enable_sequential_cpu_offload()
+pipe.vae.enable_slicing()
+pipe.vae.enable_tiling()
+
+i = 50
+generator = torch.Generator("cpu").manual_seed(i) 
+pipeline_args = {
+        "prompt": "A black and white animated scene unfolds with two anthropomorphic Mickey Mice sitting at a table, each holding a glass of wine. The musical notes and symbols float around them, suggesting a playful environment. One Mickey leans forward in curiosity, while the other remains still, sipping his drink. The dynamics shift as one Mickey raises his glass in a toast, and the other responds by clinking glasses. The scene captures the camaraderie and enjoyment between the two characters in a whimsical, animated setting, emphasizing their interactions and emotions.",
+        "guidance_scale": 6.0,
+        "num_inference_steps": 64,
+        "height": 480,
+        "width": 848,
+        "max_sequence_length": 256,
+        "output_type": "np",
+        "num_frames": 19,
+        "generator": generator
+    }
+    
+video = pipe(**pipeline_args).frames[0]
+export_to_video(video, "black_white_drinking_scene.mp4")
+from IPython import display 
+display.clear_output(wait = True)
+display.Video("black_white_drinking_scene.mp4")
+```
+
+
+https://github.com/user-attachments/assets/dc28cead-3fd0-4dc7-a5d9-922395c9e513
+
+
+
 ## Quickstart
 
 Clone the repository and make sure the requirements are installed: `pip install -r requirements.txt` and install diffusers from source by `pip install git+https://github.com/huggingface/diffusers`.
