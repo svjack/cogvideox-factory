@@ -14,7 +14,7 @@ Fine-tune Cog family of video models for custom video generation under 24GB of G
 - installtion
 ```bash
 sudo apt-get update && sudo apt-get install git-lfs ffmpeg cbm
-git clone https://github.com/a-r-r-o-w/cogvideox-factory
+git clone https://github.com/svjack/cogvideox-factory
 cd cogvideox-factory
 pip install -r requirements.txt
 cd training/mochi-1
