@@ -105,6 +105,277 @@ display.Video("black_white_drinking_scene.mp4")
 https://github.com/user-attachments/assets/dc28cead-3fd0-4dc7-a5d9-922395c9e513
 
 
+# LTX-Video
+# Finetrainers Setup and Usage Guide
+
+This guide provides instructions for setting up and using the `finetrainers` repository to process video datasets and train models.
+
+## Prerequisites
+
+Before you begin, ensure you have the following dependencies installed:
+
+```bash
+sudo apt-get update && sudo apt-get install git-lfs ffmpeg cbm
+```
+
+## Clone the Repository
+
+Clone the `finetrainers` repository and navigate to the directory:
+
+```bash
+git clone https://github.com/a-r-r-o-w/finetrainers && cd finetrainers
+```
+
+## Install Python Dependencies
+
+Install the required Python packages:
+
+```bash
+pip install -r requirements.txt
+pip install moviepy==1.0.3
+pip install Pillow==9.5.0
+pip install "torch>=2.3.1"
+pip uninstall torchvision
+pip install torchvision
+```
+
+## Download Datasets
+
+Download the necessary datasets using `huggingface-cli`:
+
+```bash
+huggingface-cli download \
+  --repo-type dataset svjack/Genshin-Impact-Cutscenes-with-score-organized \
+  --local-dir video-dataset-genshin-impact-cutscenes
+
+huggingface-cli download \
+  --repo-type dataset svjack/Genshin-Impact-XiangLing-animatediff-with-score-organized \
+  --local-dir video-dataset-genshin-impact-xiangling
+```
+
+For more information on the datasets, refer to the [dataset documentation](https://github.com/a-r-r-o-w/finetrainers/blob/main/assets/dataset.md?plain=1).
+
+## Process Video Datasets
+
+Use the provided Python script to process the video datasets:
+
+```python
+import os
+from moviepy.editor import VideoFileClip, concatenate_videoclips
+from tqdm import tqdm
+
+def process_video_dataset(data_root, output_root, target_width, target_height, target_frames):
+    # Ensure output directories exist
+    os.makedirs(output_root, exist_ok=True)
+    videos_dir = os.path.join(output_root, 'videos')
+    os.makedirs(videos_dir, exist_ok=True)
+
+    # Initialize lists to store prompts and video paths
+    prompts = []
+    video_paths = []
+
+    # Get list of video files
+    video_files = [f for f in os.listdir(data_root) if f.endswith('.mp4')]
+
+    # Process each video file
+    for video_file in tqdm(video_files, desc="Processing videos"):
+        video_path = os.path.join(data_root, video_file)
+        txt_file = os.path.join(data_root, video_file.replace('.mp4', '.txt'))
+
+        # Read prompt from corresponding txt file
+        with open(txt_file, 'r') as f:
+            prompt = f.read().strip()
+            prompts.append(prompt)
+
+        # Load video
+        clip = VideoFileClip(video_path)
+
+        # Resize video to target resolution
+        if clip.size[0] != target_width or clip.size[1] != target_height:
+            clip = clip.resize((target_width, target_height))
+
+        # Calculate current frame count
+        current_frames = int(clip.fps * clip.duration)
+
+        # If target_frames is greater than current_frames, extend the video
+        if target_frames > current_frames:
+            # Calculate how many times the video needs to be repeated
+            repeat_count = target_frames // current_frames
+            remaining_frames = target_frames % current_frames
+
+            # Create a list of clips to concatenate
+            clips_to_concat = [clip] * repeat_count
+
+            # Add remaining frames if needed
+            if remaining_frames > 0:
+                remaining_clip = clip.subclip(0, remaining_frames / clip.fps)
+                clips_to_concat.append(remaining_clip)
+
+            # Concatenate the clips
+            clip = concatenate_videoclips(clips_to_concat)
+
+        # Adjust frame count to meet the requirement
+        final_frames = int(clip.fps * clip.duration)
+        if final_frames % 4 != 0 and final_frames % 4 != 1:
+            # Adjust frame count to the nearest valid frame count
+            new_frames = (final_frames // 4) * 4
+            if final_frames % 4 > 1:
+                new_frames += 1
+            clip = clip.subclip(0, new_frames / clip.fps)
+
+        # Save processed video
+        output_video_path = os.path.join(videos_dir, video_file)
+        clip.write_videofile(output_video_path, codec='libx264')
+
+        # Add relative video path to list
+        video_paths.append(os.path.join('videos', video_file))
+
+    # Write prompts to prompt.txt
+    with open(os.path.join(output_root, 'prompt.txt'), 'w') as f:
+        f.write('\n'.join(prompts))
+
+    # Write video paths to videos.txt
+    with open(os.path.join(output_root, 'videos.txt'), 'w') as f:
+        f.write('\n'.join(video_paths))
+
+# Example usage
+data_root = 'video-dataset-genshin-impact-cutscenes'  # Replace with your dataset path
+output_root = 'video-dataset-genshin-impact-cutscenes-processed-32-rec'  # Replace with your desired output path
+target_width = 720  # Replace with your target width
+target_height = 480  # Replace with your target height
+target_frames = 32  # Replace with your target frame count
+
+process_video_dataset(data_root, output_root, target_width, target_height, target_frames)
+
+# Example usage
+data_root = 'video-dataset-genshin-impact-xiangling'  # Replace with your dataset path
+output_root = 'video-dataset-genshin-impact-xiangling-32-rec'  # Replace with your desired output path
+target_width = 512  # Replace with your target width
+target_height = 768  # Replace with your target height
+target_frames = 32  # Replace with your target frame count
+
+process_video_dataset(data_root, output_root, target_width, target_height, target_frames)
+```
+
+## Download Pretrained Model
+
+Download the pretrained model from Hugging Face:
+
+```bash
+git clone https://huggingface.co/Lightricks/LTX-Video
+```
+
+Alternatively, use `huggingface-cli`:
+
+```bash
+huggingface-cli download \
+  --repo-type model Lightricks/LTX-Video \
+  --local-dir LTX-Video
+```
+
+## Run the Training Script
+
+Create and execute a shell script to run the training process:
+
+```bash
+vim run_xiangling.sh
+```
+
+Add the following content to the script:
+
+```bash
+#!/bin/bash
+
+# export TORCH_LOGS="+dynamo,recompiles,graph_breaks"
+# export TORCHDYNAMO_VERBOSE=1
+export NCCL_P2P_DISABLE=1
+export TORCH_NCCL_ENABLE_MONITORING=0
+export FINETRAINERS_LOG_LEVEL=DEBUG
+
+GPU_IDS="0"
+
+DATA_ROOT="video-dataset-genshin-impact-xiangling-32-rec"
+CAPTION_COLUMN="prompt.txt"
+VIDEO_COLUMN="videos.txt"
+OUTPUT_DIR="ltxv_xiangling_save"
+
+# Model arguments
+model_cmd="--model_name ltx_video \
+  --pretrained_model_name_or_path Lightricks/LTX-Video"
+
+# Dataset arguments
+dataset_cmd="--data_root $DATA_ROOT \
+  --video_column $VIDEO_COLUMN \
+  --caption_column $CAPTION_COLUMN \
+  --id_token BW_STYLE \
+  --video_resolution_buckets 49x512x768 \
+  --caption_dropout_p 0.05"
+
+# Dataloader arguments
+dataloader_cmd="--dataloader_num_workers 0"
+
+# Diffusion arguments
+diffusion_cmd="--flow_resolution_shifting"
+
+# Training arguments
+training_cmd="--training_type lora \
+  --seed 42 \
+  --mixed_precision bf16 \
+  --batch_size 1 \
+  --train_steps 1200 \
+  --rank 128 \
+  --lora_alpha 128 \
+  --target_modules to_q to_k to_v to_out.0 \
+  --gradient_accumulation_steps 1 \
+  --gradient_checkpointing \
+  --checkpointing_steps 500 \
+  --checkpointing_limit 5 \
+  --enable_slicing \
+  --enable_tiling"
+
+# Optimizer arguments
+optimizer_cmd="--optimizer adamw \
+  --lr 3e-5 \
+  --lr_scheduler constant_with_warmup \
+  --lr_warmup_steps 100 \
+  --lr_num_cycles 1 \
+  --beta1 0.9 \
+  --beta2 0.95 \
+  --weight_decay 1e-4 \
+  --epsilon 1e-8 \
+  --max_grad_norm 1.0"
+
+# Miscellaneous arguments
+miscellaneous_cmd="--tracker_name finetrainers-ltxv \
+  --output_dir $OUTPUT_DIR \
+  --nccl_timeout 1800 \
+  --report_to None"
+
+cmd="accelerate launch --config_file accelerate_configs/uncompiled_2.yaml train.py \
+  $model_cmd \
+  $dataset_cmd \
+  $dataloader_cmd \
+  $diffusion_cmd \
+  $training_cmd \
+  $optimizer_cmd \
+  $miscellaneous_cmd"
+
+echo "Running command: $cmd"
+eval $cmd
+echo -ne "-------------------- Finished executing script --------------------\n\n"
+```
+
+Make the script executable and run it:
+
+```bash
+chmod +x run_xiangling.sh
+./run_xiangling.sh
+```
+
+## Conclusion
+
+This guide has walked you through the setup, dataset processing, and training process for the `finetrainers` repository. For further details, refer to the repository's documentation and the provided scripts.
+
 
 ## Quickstart
 
