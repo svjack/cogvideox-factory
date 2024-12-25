@@ -301,7 +301,7 @@ OUTPUT_DIR="ltxv_xiangling_save"
 
 # Model arguments
 model_cmd="--model_name ltx_video \
-  --pretrained_model_name_or_path Lightricks/LTX-Video"
+  --pretrained_model_name_or_path LTX-Video"
 
 # Dataset arguments
 dataset_cmd="--data_root $DATA_ROOT \
