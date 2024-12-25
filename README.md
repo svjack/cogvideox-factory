@@ -272,6 +272,23 @@ huggingface-cli download \
   --repo-type model Lightricks/LTX-Video \
   --local-dir LTX-Video
 ```
+-OR 
+```python
+import os 
+os.environ['HF_ENDPOINT']= 'https://hf-mirror.com'
+from huggingface_hub import snapshot_download
+# 下载模型
+repo_id = "Lightricks/LTX-Video"
+local_dir = "LTX-Video"
+# 使用 snapshot_download 下载模型
+snapshot_download(
+    repo_id=repo_id,
+    repo_type="model",  # 指定仓库类型为模型
+    local_dir=local_dir,  # 指定本地保存目录
+    local_dir_use_symlinks=False,  # 不使用符号链接
+    resume_download=True,  # 支持断点续传
+)
+```
 
 ## Run the Training Script
 
