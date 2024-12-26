@@ -318,14 +318,14 @@ OUTPUT_DIR="ltxv_xiangling_save"
 
 # Model arguments
 model_cmd="--model_name ltx_video \
-  --pretrained_model_name_or_path LTX-Video"
+  --pretrained_model_name_or_path ../LTX-Video"
 
 # Dataset arguments
 dataset_cmd="--data_root $DATA_ROOT \
   --video_column $VIDEO_COLUMN \
   --caption_column $CAPTION_COLUMN \
   --id_token BW_STYLE \
-  --video_resolution_buckets 49x512x768 \
+  --video_resolution_buckets 32x512x768 \
   --caption_dropout_p 0.05"
 
 # Dataloader arguments
@@ -347,7 +347,7 @@ training_cmd="--training_type lora \
   --gradient_checkpointing \
   --checkpointing_steps 500 \
   --checkpointing_limit 5 \
-  --enable_slicing \
+  --enable_slicing --precompute_conditions \
   --enable_tiling"
 
 # Optimizer arguments
@@ -368,7 +368,7 @@ miscellaneous_cmd="--tracker_name finetrainers-ltxv \
   --nccl_timeout 1800 \
   --report_to None"
 
-cmd="accelerate launch --config_file accelerate_configs/uncompiled_2.yaml train.py \
+cmd="accelerate launch --config_file accelerate_configs/uncompiled_1.yaml train.py \
   $model_cmd \
   $dataset_cmd \
   $dataloader_cmd \
