@@ -339,7 +339,7 @@ training_cmd="--training_type lora \
   --seed 42 \
   --mixed_precision bf16 \
   --batch_size 1 \
-  --train_steps 1200 \
+  --train_steps 12000 \
   --rank 128 \
   --lora_alpha 128 \
   --target_modules to_q to_k to_v to_out.0 \
