@@ -368,6 +368,7 @@ miscellaneous_cmd="--tracker_name finetrainers-ltxv \
   --nccl_timeout 1800 \
   --report_to None"
 
+#### Use config file in https://github.com/svjack/cogvideox-factory/accelerate_configs/uncompiled_1.yaml
 cmd="accelerate launch --config_file accelerate_configs/uncompiled_1.yaml train.py \
   $model_cmd \
   $dataset_cmd \
