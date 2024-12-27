@@ -257,6 +257,158 @@ target_frames = 32  # Replace with your target frame count
 
 process_video_dataset(data_root, output_root, target_width, target_height, target_frames)
 ```
+- OR
+```python
+import os
+import cv2
+import numpy as np
+from moviepy.editor import VideoFileClip, ImageSequenceClip
+from tqdm import tqdm
+
+def is_video_file(file_path):
+    """检查文件是否为视频文件"""
+    video_extensions = ['.mp4', '.avi', '.mov', '.mkv', '.flv', '.wmv']
+    return os.path.isfile(file_path) and os.path.splitext(file_path)[1].lower() in video_extensions
+
+def resize_and_pad(frame, target_width, target_height):
+    """
+    将帧缩放到目标分辨率，并用黑色填充不足的部分。
+    """
+    # 获取原始帧的尺寸
+    original_height, original_width = frame.shape[:2]
+
+    # 计算原始帧和目标分辨率的宽高比
+    aspect_ratio = original_width / original_height
+    target_aspect_ratio = target_width / target_height
+
+    # 确定缩放因子和新尺寸
+    if aspect_ratio > target_aspect_ratio:
+        # 如果帧比目标宽，则基于宽度缩放
+        scale = target_width / original_width
+        new_width = target_width
+        new_height = int(original_height * scale)
+    else:
+        # 如果帧比目标高，则基于高度缩放
+        scale = target_height / original_height
+        new_height = target_height
+        new_width = int(original_width * scale)
+
+    # 使用 OpenCV 缩放帧
+    resized_frame = cv2.resize(frame, (new_width, new_height))
+
+    # 创建一个黑色背景，尺寸为目标分辨率
+    padded_frame = np.zeros((target_height, target_width, 3), dtype=np.uint8)
+
+    # 计算将缩放后的帧放置在黑色背景上的位置
+    x_offset = (target_width - new_width) // 2
+    y_offset = (target_height - new_height) // 2
+
+    # 将缩放后的帧放置在黑色背景上
+    padded_frame[y_offset:y_offset+new_height, x_offset:x_offset+new_width] = resized_frame
+
+    return padded_frame
+
+def process_video_dataset(data_root, output_root, target_width, target_height, target_frames):
+    """
+    处理视频数据集：
+    1. 调整视频分辨率并填充。
+    2. 调整视频帧数，通过循环填充不足的部分。
+    3. 保留相同的文件和目录结构。
+    """
+    # 确保输出目录存在
+    os.makedirs(output_root, exist_ok=True)
+    videos_dir = os.path.join(output_root, 'videos')
+    os.makedirs(videos_dir, exist_ok=True)
+
+    # 初始化列表，用于存储提示和视频路径
+    prompts = []
+    video_paths = []
+
+    # 获取所有视频文件
+    video_files = [f for f in os.listdir(data_root) if is_video_file(os.path.join(data_root, f))]
+
+    # 处理每个视频文件
+    for video_file in tqdm(video_files, desc="Processing videos"):
+        video_path = os.path.join(data_root, video_file)
+        txt_file = os.path.join(data_root, video_file.replace('.mp4', '.txt'))
+
+        # 检查是否存在对应的提示文件
+        if not os.path.exists(txt_file):
+            print(f"Warning: No prompt file found for {video_file}. Skipping.")
+            continue
+
+        # 读取提示内容
+        with open(txt_file, 'r') as f:
+            prompt = f.read().strip()
+            prompts.append(prompt)
+
+        # 加载视频
+        try:
+            clip = VideoFileClip(video_path)
+        except Exception as e:
+            print(f"Error loading video {video_file}: {e}. Skipping.")
+            continue
+
+        # 初始化列表，用于存储处理后的帧
+        processed_frames = []
+
+        # 计算视频的总帧数
+        total_frames = int(clip.fps * clip.duration)
+
+        # 如果目标帧数大于当前帧数，则通过循环填充
+        if target_frames > total_frames:
+            # 计算需要循环的次数
+            repeat_count = target_frames // total_frames
+            remaining_frames = target_frames % total_frames
+
+            # 循环视频帧
+            for _ in range(repeat_count):
+                for frame in clip.iter_frames():
+                    processed_frame = resize_and_pad(frame, target_width, target_height)
+                    processed_frames.append(processed_frame)
+
+            # 添加剩余的帧
+            for i in range(remaining_frames):
+                frame = clip.get_frame(i / clip.fps)
+                processed_frame = resize_and_pad(frame, target_width, target_height)
+                processed_frames.append(processed_frame)
+        else:
+            # 如果目标帧数小于等于当前帧数，则直接截取
+            frame_step = max(1, total_frames // target_frames)
+            for i, frame in enumerate(clip.iter_frames()):
+                if i % frame_step == 0:
+                    processed_frame = resize_and_pad(frame, target_width, target_height)
+                    processed_frames.append(processed_frame)
+                if len(processed_frames) >= target_frames:
+                    break
+
+        # 从处理后的帧创建新视频
+        processed_clip = ImageSequenceClip(processed_frames, fps=clip.fps)
+
+        # 保存处理后的视频
+        output_video_path = os.path.join(videos_dir, video_file)
+        processed_clip.write_videofile(output_video_path, codec='libx264')
+
+        # 添加相对视频路径到列表
+        video_paths.append(os.path.join('videos', video_file))
+
+    # 将提示写入 prompt.txt
+    with open(os.path.join(output_root, 'prompt.txt'), 'w') as f:
+        f.write('\n'.join(prompts))
+
+    # 将视频路径写入 videos.txt
+    with open(os.path.join(output_root, 'videos.txt'), 'w') as f:
+        f.write('\n'.join(video_paths))
+
+# Example usage
+data_root = 'video-dataset-genshin-impact-xiangling'  # Replace with your dataset path
+output_root = 'video-dataset-genshin-impact-xiangling-32-rec-pad'  # Replace with your desired output path
+target_width = 768  # Replace with your target width
+target_height = 512  # Replace with your target height
+target_frames = 49  # Replace with your target frame count
+
+process_video_dataset(data_root, output_root, target_width, target_height, target_frames)
+```
 
 ## Download Pretrained Model
 
