@@ -133,6 +133,7 @@ Install the required Python packages:
 ```bash
 pip install -r requirements.txt
 pip install moviepy==1.0.3
+pip install opencv-python
 pip install Pillow==9.5.0
 pip install "torch>=2.3.1"
 pip uninstall torchvision
