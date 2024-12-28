@@ -402,7 +402,7 @@ def process_video_dataset(data_root, output_root, target_width, target_height, t
 
 # Example usage
 data_root = 'video-dataset-genshin-impact-xiangling'  # Replace with your dataset path
-output_root = 'video-dataset-genshin-impact-xiangling-32-rec-pad'  # Replace with your desired output path
+output_root = 'video-dataset-genshin-impact-xiangling-49-rec-pad'  # Replace with your desired output path
 target_width = 768  # Replace with your target width
 target_height = 512  # Replace with your target height
 target_frames = 49  # Replace with your target frame count
@@ -464,21 +464,21 @@ export FINETRAINERS_LOG_LEVEL=DEBUG
 
 GPU_IDS="0"
 
-DATA_ROOT="video-dataset-genshin-impact-xiangling-32-rec"
+DATA_ROOT="video-dataset-genshin-impact-xiangling-49-rec-pad"
 CAPTION_COLUMN="prompt.txt"
 VIDEO_COLUMN="videos.txt"
 OUTPUT_DIR="ltxv_xiangling_save"
 
 # Model arguments
 model_cmd="--model_name ltx_video \
-  --pretrained_model_name_or_path ../LTX-Video"
+  --pretrained_model_name_or_path LTX-Video"
 
 # Dataset arguments
 dataset_cmd="--data_root $DATA_ROOT \
   --video_column $VIDEO_COLUMN \
   --caption_column $CAPTION_COLUMN \
   --id_token BW_STYLE \
-  --video_resolution_buckets 32x512x768 \
+  --video_resolution_buckets 49x512x768 \
   --caption_dropout_p 0.05"
 
 # Dataloader arguments
@@ -492,7 +492,7 @@ training_cmd="--training_type lora \
   --seed 42 \
   --mixed_precision bf16 \
   --batch_size 1 \
-  --train_steps 12000 \
+  --train_steps 15000 \
   --rank 128 \
   --lora_alpha 128 \
   --target_modules to_q to_k to_v to_out.0 \
