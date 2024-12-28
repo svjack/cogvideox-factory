@@ -477,7 +477,6 @@ model_cmd="--model_name ltx_video \
 dataset_cmd="--data_root $DATA_ROOT \
   --video_column $VIDEO_COLUMN \
   --caption_column $CAPTION_COLUMN \
-  --id_token BW_STYLE \
   --video_resolution_buckets 49x512x768 \
   --caption_dropout_p 0.05"
 
