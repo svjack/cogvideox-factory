@@ -542,6 +542,88 @@ chmod +x run_xiangling.sh
 ./run_xiangling.sh
 ```
 
+```bash
+#!/bin/bash
+
+# export TORCH_LOGS="+dynamo,recompiles,graph_breaks"
+# export TORCHDYNAMO_VERBOSE=1
+export NCCL_P2P_DISABLE=1
+export TORCH_NCCL_ENABLE_MONITORING=0
+export FINETRAINERS_LOG_LEVEL=DEBUG
+
+GPU_IDS="0"
+
+DATA_ROOT="video-dataset-genshin-impact-xiangling-49-rec-pad"
+CAPTION_COLUMN="prompt.txt"
+VIDEO_COLUMN="videos.txt"
+OUTPUT_DIR="hunyuan_xiangling_save"
+
+# Model arguments
+model_cmd="--model_name hunyuan_video \
+  --pretrained_model_name_or_path HunyuanVideo"
+
+# Dataset arguments
+dataset_cmd="--data_root $DATA_ROOT \
+  --video_column $VIDEO_COLUMN \
+  --caption_column $CAPTION_COLUMN \
+  --video_resolution_buckets 17x512x768 49x512x768 61x512x768 \
+  --caption_dropout_p 0.05"
+
+# Dataloader arguments
+dataloader_cmd="--dataloader_num_workers 0"
+
+# Diffusion arguments
+diffusion_cmd="--flow_resolution_shifting"
+
+# Training arguments
+training_cmd="--training_type lora \
+  --seed 42 \
+  --mixed_precision bf16 \
+  --batch_size 1 \
+  --train_steps 15000 \
+  --rank 128 \
+  --lora_alpha 128 \
+  --target_modules to_q to_k to_v to_out.0 \
+  --gradient_accumulation_steps 1 \
+  --gradient_checkpointing \
+  --checkpointing_steps 500 \
+  --checkpointing_limit 5 \
+  --enable_slicing --precompute_conditions \
+  --enable_tiling"
+
+# Optimizer arguments
+optimizer_cmd="--optimizer adamw \
+  --lr 3e-5 \
+  --lr_scheduler constant_with_warmup \
+  --lr_warmup_steps 100 \
+  --lr_num_cycles 1 \
+  --beta1 0.9 \
+  --beta2 0.95 \
+  --weight_decay 1e-4 \
+  --epsilon 1e-8 \
+  --max_grad_norm 1.0"
+
+# Miscellaneous arguments
+miscellaneous_cmd="--tracker_name finetrainers-hunyuan \
+  --output_dir $OUTPUT_DIR \
+  --nccl_timeout 1800 \
+  --report_to None"
+
+#### Use config file in https://github.com/svjack/cogvideox-factory/accelerate_configs/uncompiled_1.yaml
+cmd="accelerate launch --config_file accelerate_configs/uncompiled_1.yaml train.py \
+  $model_cmd \
+  $dataset_cmd \
+  $dataloader_cmd \
+  $diffusion_cmd \
+  $training_cmd \
+  $optimizer_cmd \
+  $miscellaneous_cmd"
+
+echo "Running command: $cmd"
+eval $cmd
+echo -ne "-------------------- Finished executing script --------------------\n\n"
+```
+
 ## Conclusion
 
 This guide has walked you through the setup, dataset processing, and training process for the `finetrainers` repository. For further details, refer to the repository's documentation and the provided scripts.
