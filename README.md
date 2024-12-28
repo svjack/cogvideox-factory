@@ -543,6 +543,12 @@ chmod +x run_xiangling.sh
 ```
 
 ```bash
+huggingface-cli download \
+  --repo-type model hunyuanvideo-community/HunyuanVideo \
+  --local-dir HunyuanVideo
+```
+
+```bash
 #!/bin/bash
 
 # export TORCH_LOGS="+dynamo,recompiles,graph_breaks"
