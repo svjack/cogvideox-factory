@@ -410,6 +410,72 @@ target_frames = 49  # Replace with your target frame count
 process_video_dataset(data_root, output_root, target_width, target_height, target_frames)
 ```
 
+## Upload model to hub 
+```python
+import os
+import shutil
+import pandas as pd
+from huggingface_hub import HfApi
+
+# 输入路径
+input_folder = "video-dataset-genshin-impact-xiangling-49-rec-pad-cp/"
+# 新建路径用于文件准备
+output_folder = "video-dataset-prepared"
+
+# 确保新建路径存在
+os.makedirs(output_folder, exist_ok=True)
+
+# 读取 prompts 和 videos
+with open(os.path.join(input_folder, "prompt.txt"), "r") as f:
+    prompts = f.read().splitlines()
+with open(os.path.join(input_folder, "videos.txt"), "r") as f:
+    video_paths = f.read().splitlines()
+
+# 创建 videos 文件夹
+videos_dir = os.path.join(output_folder, "videos")
+os.makedirs(videos_dir, exist_ok=True)
+
+# 将 prompts 和 video_paths 转换为字典，方便查找
+prompt_dict = {}
+for video_path, prompt in zip(video_paths, prompts):
+    video_filename = os.path.basename(video_path)
+    prompt_dict[video_filename] = prompt
+
+# 复制视频文件到新路径，并准备 metadata.csv 数据
+metadata_data = []
+for video_path in video_paths:
+    # 视频文件名
+    video_filename = os.path.basename(video_path)
+    # 检查是否有对应的提示
+    if video_filename not in prompt_dict:
+        print(f"警告: 视频文件 {video_filename} 没有对应的提示，已跳过。")
+        continue
+    # 源视频路径
+    src_video_path = os.path.join(input_folder, video_path)
+    # 目标视频路径
+    dst_video_path = os.path.join(videos_dir, video_filename)
+    # 复制视频文件
+    shutil.copy(src_video_path, dst_video_path)
+    # 添加到 metadata.csv 数据（在 file_name 中加上 videos/ 路径）
+    metadata_data.append({"file_name": f"videos/{video_filename}", "text": prompt_dict[video_filename]})
+
+metadata = pd.DataFrame(metadata_data)
+metadata.to_csv(os.path.join(output_folder, "metadata.csv"), index=False) 
+
+print("文件准备完成，路径:", output_folder)
+
+repo_id = "svjack/Genshin-Impact-XiangLing-animatediff-hf"  # 替换为你的数据集名称
+api = HfApi()
+api.upload_folder(
+    folder_path=output_folder,
+    repo_id=repo_id,
+    repo_type="dataset",
+)
+
+print(f"数据集已上传到 Hugging Face Hub: {repo_id}")
+```
+
+
 ## Download Pretrained Model
 
 Download the pretrained model from Hugging Face:
