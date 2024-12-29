@@ -410,7 +410,7 @@ target_frames = 49  # Replace with your target frame count
 process_video_dataset(data_root, output_root, target_width, target_height, target_frames)
 ```
 
-## Upload model to hub 
+## Upload dataset to hub 
 ```python
 import os
 import shutil
